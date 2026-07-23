@@ -293,9 +293,11 @@ def fetch_youtube_v3_data(
             "maxResults": 50,
             "order": order,
         }
-        # 지역 선택 파라미터 처리 (KR선택 시에만 regionCode 추가)
+        # 한국 선택 시에만 regionCode 및 relevanciaLanguage 적용
         if region_opt == "KR":
             params["regionCode"] = "KR"
+            params["relevanceLanguage"] = "ko"
+
         if duration != "any":
             params["videoDuration"] = duration
         if pub_after:
@@ -458,10 +460,10 @@ with col_f3:
 with col_f4:
     api_region = st.selectbox(
         "🌐 국가/지역 필터 (API)",
-        ["KR", "ALL"],
+        ["ALL", "KR"],
         format_func=lambda x: {
+            "ALL": "🌐 전세계 (Global - 기본)",
             "KR": "🇰🇷 한국 (KR)",
-            "ALL": "🌐 전세계 (Global)",
         }[x],
         index=0,
     )
@@ -522,22 +524,15 @@ if "raw_data" in st.session_state and st.session_state["raw_data"]:
                     badge = get_viral_badge(item["viralScore"])
                     safe_title = html.escape(item["title"])
                     safe_ch = html.escape(item["channelTitle"])
-                    multiplier = (
-                        item["viralScore"] / 100.0 if item["viralScore"] else 0.0
-                    )
 
+                    # 요청 양식으로 바뀐 AI 기획안 프롬프트 텍스트
                     prompt_text = (
-                        f"너는 조회수 천만을 넘기는 최고의 유튜브 크리에이터야. 아래 영상을 벤치마킹해서 한국인 20대 미모의 여자 주인, 양쪽 귀만 커피색 털의 흰색 강아지, 왼쪽 눈은 파란색, 오른쪽 눈은 주황색의 오드아이와 모든 발끝이 흰색 털인 회색 새끼 고양이를 주인공으로 기획안을 써줘. (GPT/Gemini)\n\n"
-                        f"[대상]\n"
-                        f"제목: {item['title']}\n"
-                        f"채널: {item['channelTitle']}\n"
-                        f"길이: {item['durationStr']}\n"
-                        f"성과: 구독자 대비 {multiplier:.1f}배 조회수\n"
-                        f"태그: {item['tags']}\n\n"
-                        f"[요청]\n"
-                        f"1. 클릭을 부른 심리적 트리거 분석\n"
-                        f"2. 내 주제에 맞춘 썸네일/제목 5개 추천\n"
-                        f"3. 시청 지속 시간을 위한 대본 구조 설계"
+                        f"해당 동영상의 URL 주소: {item['url']}\n\n"
+                        f"너는 천만 조회수를 넘기는 최고의 유튜브 PD이자 크리에이터야.\n"
+                        f"상기 유튜브 영상의 클릭을 부르는 심리적 트리거 분석해서 시청 지속 시간을 위한 대본 구조를 설계하고 "
+                        f"대본에 내용에 따라 흰색 강아지(양쪽 귀만 커피색 털), 회색 새끼 고양이(왼쪽 눈은 파란색, 오른쪽 눈은 주황색의 오드아이, 모든 발끝은 흰색 털), "
+                        f"20대 미모의 한국인 여주인을 필요한 상황에 맞게 대체하여 대본을 작성해줘.\n"
+                        f"해당 대본에 맞는 썸네일/ 제목 5개 추천해줘"
                     )
 
                     card_html = (
