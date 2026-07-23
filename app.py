@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# 2. UI 가독성 개선 및 고대비 다크 테마 CSS
+# 2. UI 가독성 보정 및 고대비 다크 테마 CSS
 st.markdown(
     """
     <style>
@@ -27,13 +27,6 @@ st.markdown(
         --accent-color: #3ea6ff;
         --border-color: #2f3542;
         --ai-btn-bg: linear-gradient(135deg, #7c3aed, #a855f7);
-        
-        --lv1-color: #383d48;
-        --lv2-color: #1b5e20;
-        --lv3-color: #0d47a1;
-        --lv4-color: #4a148c;
-        --lv5-color: #e65100;
-        --lv6-bg: linear-gradient(135deg, #d50000, #ff1744, #ff5252);
     }
 
     .stApp {
@@ -41,17 +34,48 @@ st.markdown(
         color: var(--text-main);
     }
 
-    /* Streamlit 입력 폼 라벨 및 글자 가독성 보정 */
+    /* 상단 헤더 영역(SHARE 등) 가독성 보정 */
+    header[data-testid="stHeader"] {
+        background-color: transparent !important;
+    }
+    header[data-testid="stHeader"] * {
+        color: #ffffff !important;
+    }
+
+    /* Streamlit 입력 폼 및 라벨 가독성 보정 */
     label, .stWidgetLabel, p, span, div {
         color: #ffffff !important;
     }
     .stCaption {
         color: #b0b8c4 !important;
     }
-    div[data-baseweb="input"] input, div[data-baseweb="select"] select {
-        background-color: #222630 !important;
+    div[data-baseweb="input"] input {
+        background-color: #1e222d !important;
         color: #ffffff !important;
         border: 1px solid #3ea6ff !important;
+    }
+    div[data-baseweb="select"] > div {
+        background-color: #1e222d !important;
+        color: #ffffff !important;
+        border: 1px solid #3ea6ff !important;
+    }
+
+    /* Deep Search 버튼 UI 가독성 개선 */
+    div.stButton > button {
+        background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+        color: #ffffff !important;
+        border: 1px solid #3b82f6 !important;
+        font-weight: 700 !important;
+        font-size: 14px !important;
+        border-radius: 6px !important;
+        height: 42px !important;
+        width: 100% !important;
+        transition: all 0.2s ease-in-out !important;
+    }
+    div.stButton > button:hover {
+        background: linear-gradient(135deg, #1d4ed8, #2563eb) !important;
+        border-color: #60a5fa !important;
+        box-shadow: 0 0 12px rgba(59, 130, 246, 0.6) !important;
     }
 
     /* 카드 그리드 레이아웃 */
@@ -143,14 +167,33 @@ st.markdown(
         font-size: 12px;
         color: #ffffff;
     }
-    .lv-1 { background: var(--lv1-color); color: #ccc; }
-    .lv-2 { background: var(--lv2-color); }
-    .lv-3 { background: var(--lv3-color); }
-    .lv-4 { background: var(--lv4-color); }
-    .lv-5 { background: var(--lv5-color); }
+    .lv-1 { background: #383d48; color: #ccc; }
+    .lv-2 { background: #1b5e20; }
+    .lv-3 { background: #0d47a1; }
+    .lv-4 { background: #4a148c; }
+    .lv-5 { background: #e65100; }
     .lv-6 { 
-        background: var(--lv6-bg); 
+        background: linear-gradient(135deg, #d50000, #ff1744, #ff5252); 
         box-shadow: 0 0 12px rgba(255, 23, 68, 0.8); 
+    }
+
+    /* 카드 내부 AI 기획안 복사 버튼 */
+    .ai-btn {
+        width: 100%;
+        background: var(--ai-btn-bg);
+        color: #ffffff !important;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 12px;
+        cursor: pointer;
+        margin-top: 8px;
+        transition: all 0.2s ease;
+    }
+    .ai-btn:hover {
+        filter: brightness(1.2);
+        box-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
     }
     </style>
 """,
@@ -443,12 +486,29 @@ if "raw_data" in st.session_state and st.session_state["raw_data"]:
     elif sort_by == "최신순":
         data = sorted(data, key=lambda x: x["publishedAt"], reverse=is_desc)
 
-    # HTML 공백 들여쓰기 제거 처리로 코드 블록 오류 방지
     cards_html = '<div class="card-container">'
     for item in data:
         badge = get_viral_badge(item["viralScore"])
         safe_title = html.escape(item["title"])
         safe_ch = html.escape(item["channelTitle"])
+        multiplier = (
+            item["viralScore"] / 100.0 if item["viralScore"] else 0.0
+        )
+
+        prompt_text = (
+            f"나는 유튜브 크리에이터야. 아래 영상을 벤치마킹해서 기획안을 써줘. (GPT/Gemini)\n\n"
+            f"[대상]\n"
+            f"제목: {item['title']}\n"
+            f"채널: {item['channelTitle']}\n"
+            f"길이: {item['durationStr']}\n"
+            f"성과: 구독자 대비 {multiplier:.1f}배 조회수\n"
+            f"태그: {item['tags']}\n\n"
+            f"[요청]\n"
+            f"1. 클릭을 부른 심리적 트리거 분석\n"
+            f"2. 내 주제에 맞춘 썸네일/제목 5개 추천\n"
+            f"3. 시청 지속 시간을 위한 대본 구조 설계"
+        )
+        safe_prompt = html.escape(prompt_text, quote=True)
 
         card_item = (
             f'<div class="card">'
@@ -465,6 +525,7 @@ if "raw_data" in st.session_state and st.session_state["raw_data"]:
             f'<div class="stat-row"><span>구독자</span><span class="stat-val">{format_num(item["subCount"])}</span></div>'
             f'<div class="stat-row"><span>기여도</span><span class="stat-val" style="color:#3ea6ff">{item["viralScore"]:,.0f}%</span></div>'
             f'</div>'
+            f'<button class="ai-btn" data-prompt="{safe_prompt}" onclick="navigator.clipboard.writeText(this.getAttribute(\'data-prompt\')); alert(\'🤖 AI 기획안 프롬프트가 클립보드에 복사되었습니다!\');">🤖 AI 기획안 복사</button>'
             f'</div>'
             f'</div>'
         )
@@ -472,34 +533,3 @@ if "raw_data" in st.session_state and st.session_state["raw_data"]:
     cards_html += "</div>"
 
     st.markdown(cards_html, unsafe_allow_html=True)
-
-    # AI Prompt Box
-    st.markdown("---")
-    st.subheader("🤖 AI 기획안 프롬프트 추출")
-
-    video_titles = [
-        f"[{i+1}] {item['title']} ({item['channelTitle']})"
-        for i, item in enumerate(data)
-    ]
-    selected_idx = st.selectbox("영상을 선택하세요", range(len(data)), format_func=lambda x: video_titles[x])
-
-    sel_item = data[selected_idx]
-    multiplier = (
-        sel_item["viralScore"] / 100.0 if sel_item["viralScore"] else 0.0
-    )
-
-    ai_prompt = f"""나는 유튜브 크리에이터야. 아래 영상을 벤치마킹해서 기획안을 써줘. (GPT/Gemini)
-
-[대상]
-제목: {sel_item['title']}
-채널: {sel_item['channelTitle']}
-길이: {sel_item['durationStr']}
-성과: 구독자 대비 {multiplier:.1f}배 조회수
-태그: {sel_item['tags']}
-
-[요청]
-1. 클릭을 부른 심리적 트리거 분석
-2. 내 주제에 맞춘 썸네일/제목 5개 추천
-3. 시청 지속 시간을 위한 대본 구조 설계"""
-
-    st.code(ai_prompt, language="markdown")
