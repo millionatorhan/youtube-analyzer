@@ -2,7 +2,6 @@ import base64
 import datetime
 import html
 import re
-import urllib.parse
 import pandas as pd
 from googleapiclient.discovery import build
 import streamlit as st
@@ -16,7 +15,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# 2. UI 가독성 보정, 다크 테마 CSS 및 복사 전용 JS
+# 2. UI 가독성 보정 및 고대비 다크 테마 CSS
 st.markdown(
     """
     <style>
@@ -213,26 +212,6 @@ st.markdown(
         box-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
     }
     </style>
-
-    <script>
-    function copyB64Prompt(b64Str) {
-        try {
-            const binaryString = atob(b64Str);
-            const bytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
-            }
-            const text = new TextDecoder('utf-8').decode(bytes);
-            navigator.clipboard.writeText(text).then(() => {
-                alert('🤖 AI 기획안 프롬프트가 클립보드에 복사되었습니다!');
-            }).catch(err => {
-                alert('복사 권한 오류가 발생했습니다: ' + err);
-            });
-        } catch (err) {
-            alert('디코딩 중 오류가 발생했습니다: ' + err);
-        }
-    }
-    </script>
 """,
     unsafe_allow_html=True,
 )
@@ -546,9 +525,37 @@ if "raw_data" in st.session_state and st.session_state["raw_data"]:
             f"3. 시청 지속 시간을 위한 대본 구조 설계"
         )
 
-        # Base64 인코딩을 적용하여 특수문자 및 줄바꿈으로 인한 JS 깨짐 완전 방지
-        b64_prompt = base64.b64encode(prompt_text.encode("utf-8")).decode(
-            "utf-8"
+        # Base64 인코딩
+        b64_prompt = base64.b64encode(prompt_text.encode("utf-8")).decode("utf-8")
+
+        # Streamlit iframe 제약을 우회하는 textarea 기반 인라인 복사 JS
+        click_js = (
+            f"(function(b64){{"
+            f"  try {{"
+            f"    var bin = atob(b64);"
+            f"    var bytes = new Uint8Array(bin.length);"
+            f"    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);"
+            f"    var txt = new TextDecoder('utf-8').decode(bytes);"
+            f"    var ta = document.createElement('textarea');"
+            f"    ta.value = txt;"
+            f"    ta.style.position = 'fixed';"
+            f"    ta.style.left = '-9999px';"
+            f"    ta.style.top = '-9999px';"
+            f"    document.body.appendChild(ta);"
+            f"    ta.focus();"
+            f"    ta.select();"
+            f"    var ok = document.execCommand('copy');"
+            f"    document.body.removeChild(ta);"
+            f"    if (ok) {{"
+            f"      alert('🤖 AI 기획안 프롬프트가 클립보드에 복사되었습니다!');"
+            f"    }} else {{"
+            f"      navigator.clipboard.writeText(txt);"
+            f"      alert('🤖 AI 기획안 프롬프트가 클립보드에 복사되었습니다!');"
+            f"    }}"
+            f"  }} catch(e) {{"
+            f"    alert('복사 중 오류 발생: ' + e);"
+            f"  }}"
+            f"}}('{b64_prompt}'))"
         )
 
         card_item = (
@@ -566,7 +573,7 @@ if "raw_data" in st.session_state and st.session_state["raw_data"]:
             f'<div class="stat-row"><span>구독자</span><span class="stat-val">{format_num(item["subCount"])}</span></div>'
             f'<div class="stat-row"><span>기여도</span><span class="stat-val" style="color:#3ea6ff">{item["viralScore"]:,.0f}%</span></div>'
             f'</div>'
-            f'<button class="ai-btn" onclick="copyB64Prompt(\'{b64_prompt}\')">🤖 AI 기획안 프롬프트 추출</button>'
+            f'<button class="ai-btn" onclick="{click_js}">🤖 AI 기획안 프롬프트 추출</button>'
             f'</div>'
             f'</div>'
         )
