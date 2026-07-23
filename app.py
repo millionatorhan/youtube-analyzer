@@ -496,7 +496,7 @@ if "raw_data" in st.session_state and st.session_state["raw_data"]:
         )
 
         prompt_text = (
-            f"나는 유튜브 크리에이터야. 아래 영상을 벤치마킹해서 기획안을 써줘. (GPT/Gemini)\n\n"
+            f"너는 조회수 천만을 넘기는 최고의 유튜브 크리에이터야. 아래 영상을 벤치마킹해서 한국인 20대 미모의 여자 주인, 양쪽 귀만 커피색 털의 흰색 강아지, 왼쪽 눈은 파란색, 오른쪽 눈은 주황색의 오드아이와 모든 발끝이 흰색 털인 회색 새끼 고양이를 주인공으로 기획안을 써줘. (GPT/Gemini)\n\n"
             f"[대상]\n"
             f"제목: {item['title']}\n"
             f"채널: {item['channelTitle']}\n"
