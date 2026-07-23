@@ -2,6 +2,7 @@ import base64
 import datetime
 import html
 import re
+import urllib.parse
 import pandas as pd
 from googleapiclient.discovery import build
 import streamlit as st
@@ -10,7 +11,7 @@ import streamlit as st
 DEFAULT_API_KEY = "AIzaSyCG8MzQ9rkN6WXGAyWJNP2xN27iHZjZPEg"
 
 st.set_page_config(
-    page_title="YouTube Native + Insight V3.0",
+    page_title="YouTube Native + Insight",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -212,7 +213,7 @@ st.markdown(
         box-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
     }
     </style>
-""",
+    """,
     unsafe_allow_html=True,
 )
 
@@ -525,37 +526,27 @@ if "raw_data" in st.session_state and st.session_state["raw_data"]:
             f"3. 시청 지속 시간을 위한 대본 구조 설계"
         )
 
-        # Base64 인코딩
+        # Base64 인코딩을 통해 문자 깨짐 방지
         b64_prompt = base64.b64encode(prompt_text.encode("utf-8")).decode("utf-8")
 
-        # Streamlit iframe 제약을 우회하는 textarea 기반 인라인 복사 JS
+        # 클립보드 API 제한을 우회하는 DOM 기반 복사 스크립트
         click_js = (
-            f"(function(b64){{"
-            f"  try {{"
-            f"    var bin = atob(b64);"
-            f"    var bytes = new Uint8Array(bin.length);"
-            f"    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);"
-            f"    var txt = new TextDecoder('utf-8').decode(bytes);"
-            f"    var ta = document.createElement('textarea');"
-            f"    ta.value = txt;"
-            f"    ta.style.position = 'fixed';"
-            f"    ta.style.left = '-9999px';"
-            f"    ta.style.top = '-9999px';"
-            f"    document.body.appendChild(ta);"
-            f"    ta.focus();"
-            f"    ta.select();"
-            f"    var ok = document.execCommand('copy');"
-            f"    document.body.removeChild(ta);"
-            f"    if (ok) {{"
-            f"      alert('🤖 AI 기획안 프롬프트가 클립보드에 복사되었습니다!');"
-            f"    }} else {{"
-            f"      navigator.clipboard.writeText(txt);"
-            f"      alert('🤖 AI 기획안 프롬프트가 클립보드에 복사되었습니다!');"
-            f"    }}"
-            f"  }} catch(e) {{"
-            f"    alert('복사 중 오류 발생: ' + e);"
-            f"  }}"
-            f"}}('{b64_prompt}'))"
+            f"var bin = atob('{b64_prompt}');"
+            f"var bytes = new Uint8Array(bin.length);"
+            f"for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);"
+            f"var txt = new TextDecoder('utf-8').decode(bytes);"
+            f"var ta = document.createElement('textarea');"
+            f"ta.value = txt;"
+            f"ta.style.position = 'fixed';"
+            f"ta.style.top = '0';"
+            f"ta.style.left = '0';"
+            f"ta.style.opacity = '0';"
+            f"document.body.appendChild(ta);"
+            f"ta.focus();"
+            f"ta.select();"
+            f"document.execCommand('copy');"
+            f"document.body.removeChild(ta);"
+            f"alert('🤖 AI 기획안 프롬프트가 복사되었습니다!');"
         )
 
         card_item = (
