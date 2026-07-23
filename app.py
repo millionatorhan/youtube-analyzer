@@ -274,7 +274,9 @@ def get_published_after_rfc3339(option):
 
 
 @st.cache_data(ttl=1800)
-def fetch_youtube_v3_data(api_key, keyword, order, duration, pub_after_opt):
+def fetch_youtube_v3_data(
+    api_key, keyword, order, duration, pub_after_opt, region_opt
+):
     youtube = build("youtube", "v3", developerKey=api_key)
     pub_after = get_published_after_rfc3339(pub_after_opt)
 
@@ -289,9 +291,11 @@ def fetch_youtube_v3_data(api_key, keyword, order, duration, pub_after_opt):
             "part": "snippet",
             "type": "video",
             "maxResults": 50,
-            "regionCode": "KR",
             "order": order,
         }
+        # 지역 선택 파라미터 처리 (KR선택 시에만 regionCode 추가)
+        if region_opt == "KR":
+            params["regionCode"] = "KR"
         if duration != "any":
             params["videoDuration"] = duration
         if pub_after:
@@ -411,7 +415,7 @@ api_key = custom_key.strip() if custom_key.strip() else DEFAULT_API_KEY
 
 # Filters
 st.subheader("🎯 검색 및 서버 필터 설정")
-col_f1, col_f2, col_f3 = st.columns(3)
+col_f1, col_f2, col_f3, col_f4 = st.columns(4)
 
 with col_f1:
     api_date = st.selectbox(
@@ -451,6 +455,17 @@ with col_f3:
         }[x],
     )
 
+with col_f4:
+    api_region = st.selectbox(
+        "🌐 국가/지역 필터 (API)",
+        ["KR", "ALL"],
+        format_func=lambda x: {
+            "KR": "🇰🇷 한국 (KR)",
+            "ALL": "🌐 전세계 (Global)",
+        }[x],
+        index=0,
+    )
+
 col_k, col_btn = st.columns([4, 1])
 with col_k:
     keyword = st.text_input(
@@ -463,7 +478,7 @@ if search_clicked:
     with st.spinner("데이터 수집 중..."):
         try:
             raw_data = fetch_youtube_v3_data(
-                api_key, keyword, api_order, api_duration, api_date
+                api_key, keyword, api_order, api_duration, api_date, api_region
             )
             st.session_state["raw_data"] = raw_data
         except Exception as e:
