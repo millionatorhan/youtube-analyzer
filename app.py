@@ -1,6 +1,7 @@
 import datetime
 import html
 import re
+import urllib.parse
 import pandas as pd
 from googleapiclient.discovery import build
 import streamlit as st
@@ -34,7 +35,7 @@ st.markdown(
         color: var(--text-main);
     }
 
-    /* 상단 헤더 영역(SHARE 등) 가독성 보정 */
+    /* 상단 헤더 영역 가독성 보정 */
     header[data-testid="stHeader"] {
         background-color: transparent !important;
     }
@@ -42,22 +43,37 @@ st.markdown(
         color: #ffffff !important;
     }
 
-    /* Streamlit 입력 폼 및 라벨 가독성 보정 */
-    label, .stWidgetLabel, p, span, div {
+    /* Streamlit 입력 폼 및 필터 드롭다운 글자색(검은색) 보정 */
+    label, .stWidgetLabel, p, span {
         color: #ffffff !important;
     }
     .stCaption {
         color: #b0b8c4 !important;
     }
     div[data-baseweb="input"] input {
-        background-color: #1e222d !important;
-        color: #ffffff !important;
+        background-color: #ffffff !important;
+        color: #000000 !important;
         border: 1px solid #3ea6ff !important;
+        font-weight: 600 !important;
     }
     div[data-baseweb="select"] > div {
-        background-color: #1e222d !important;
-        color: #ffffff !important;
+        background-color: #ffffff !important;
+        color: #000000 !important;
         border: 1px solid #3ea6ff !important;
+        font-weight: 600 !important;
+    }
+    div[data-baseweb="select"] * {
+        color: #000000 !important;
+    }
+    div[data-baseweb="popover"] {
+        background-color: #ffffff !important;
+    }
+    div[data-baseweb="popover"] * {
+        color: #000000 !important;
+        background-color: #ffffff !important;
+    }
+    ul[role="listbox"] li {
+        color: #000000 !important;
     }
 
     /* Deep Search 버튼 UI 가독성 개선 */
@@ -113,7 +129,7 @@ st.markdown(
         bottom: 8px;
         right: 8px;
         background: rgba(0, 0, 0, 0.85);
-        color: #ffffff;
+        color: #ffffff !important;
         padding: 3px 6px;
         border-radius: 4px;
         font-size: 12px;
@@ -133,7 +149,7 @@ st.markdown(
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
-        color: #ffffff;
+        color: #ffffff !important;
         height: 40px;
     }
     .channel-info {
@@ -165,9 +181,9 @@ st.markdown(
         border-radius: 6px;
         font-weight: 800;
         font-size: 12px;
-        color: #ffffff;
+        color: #ffffff !important;
     }
-    .lv-1 { background: #383d48; color: #ccc; }
+    .lv-1 { background: #383d48; color: #ccc !important; }
     .lv-2 { background: #1b5e20; }
     .lv-3 { background: #0d47a1; }
     .lv-4 { background: #4a148c; }
@@ -177,16 +193,16 @@ st.markdown(
         box-shadow: 0 0 12px rgba(255, 23, 68, 0.8); 
     }
 
-    /* 카드 내부 AI 기획안 복사 버튼 */
+    /* 카드 내부 AI 기획안 프롬프트 추출 버튼 */
     .ai-btn {
         width: 100%;
         background: var(--ai-btn-bg);
         color: #ffffff !important;
         border: none;
-        padding: 8px 12px;
+        padding: 10px;
         border-radius: 6px;
         font-weight: 700;
-        font-size: 12px;
+        font-size: 13px;
         cursor: pointer;
         margin-top: 8px;
         transition: all 0.2s ease;
@@ -508,7 +524,9 @@ if "raw_data" in st.session_state and st.session_state["raw_data"]:
             f"2. 내 주제에 맞춘 썸네일/제목 5개 추천\n"
             f"3. 시청 지속 시간을 위한 대본 구조 설계"
         )
-        safe_prompt = html.escape(prompt_text, quote=True)
+        
+        # HTML 속성 내 깨짐 방지를 위한 URL 인코딩
+        encoded_prompt = urllib.parse.quote(prompt_text)
 
         card_item = (
             f'<div class="card">'
@@ -525,7 +543,7 @@ if "raw_data" in st.session_state and st.session_state["raw_data"]:
             f'<div class="stat-row"><span>구독자</span><span class="stat-val">{format_num(item["subCount"])}</span></div>'
             f'<div class="stat-row"><span>기여도</span><span class="stat-val" style="color:#3ea6ff">{item["viralScore"]:,.0f}%</span></div>'
             f'</div>'
-            f'<button class="ai-btn" data-prompt="{safe_prompt}" onclick="navigator.clipboard.writeText(this.getAttribute(\'data-prompt\')); alert(\'🤖 AI 기획안 프롬프트가 클립보드에 복사되었습니다!\');">🤖 AI 기획안 복사</button>'
+            f'<button class="ai-btn" onclick="navigator.clipboard.writeText(decodeURIComponent(\'{encoded_prompt}\')); alert(\'🤖 AI 기획안 프롬프트가 클립보드에 복사되었습니다!\');">🤖 AI 기획안 프롬프트 추출</button>'
             f'</div>'
             f'</div>'
         )
