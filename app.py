@@ -42,11 +42,8 @@ st.markdown(
     }
 
     /* Streamlit 입력 폼 및 필터 드롭다운 글자색 보정 */
-    label, .stWidgetLabel, p, span {
+    .stWidgetLabel, p, .stCaption {
         color: #ffffff !important;
-    }
-    .stCaption {
-        color: #b0b8c4 !important;
     }
     div[data-baseweb="input"] input {
         background-color: #ffffff !important;
@@ -92,7 +89,7 @@ st.markdown(
         box-shadow: 0 0 12px rgba(59, 130, 246, 0.6) !important;
     }
 
-    /* 개별 카드 디자인 (Grid 제거, Column 대응) */
+    /* 개별 카드 디자인 */
     .card {
         background: var(--card-bg);
         border-radius: 12px;
@@ -186,16 +183,28 @@ st.markdown(
         box-shadow: 0 0 12px rgba(255, 23, 68, 0.8); 
     }
     
-    /* Expander 디자인 수정 */
+    /* Expander 및 st.code 프롬프트 박스 가독성 스타일 지정 */
     div[data-testid="stExpander"] {
-        background-color: #1a1d24 !important;
-        border: 1px solid #2f3542 !important;
+        background-color: #161b22 !important;
+        border: 1px solid #30363d !important;
         border-radius: 8px !important;
     }
     div[data-testid="stExpander"] summary p {
         color: #a855f7 !important;
         font-weight: 700 !important;
         font-size: 13px !important;
+    }
+    div[data-testid="stCodeBlock"] {
+        background-color: #0d1117 !important;
+        border: 1px solid #30363d !important;
+        border-radius: 6px !important;
+    }
+    div[data-testid="stCodeBlock"] * {
+        color: #58a6ff !important;
+        background-color: transparent !important;
+        font-family: monospace !important;
+        font-size: 12px !important;
+        line-height: 1.5 !important;
     }
     </style>
     """,
@@ -234,7 +243,7 @@ def get_viral_badge(score):
     if score < 100:
         return f'<div class="viral-badge lv-1">🏳️ 일반 ({score:.0f}%)</div>'
     elif score < 500:
-        return f'<div class="viral-badge lv-2">🌿 우수 ({score:.0f}%)</div>'
+        return f'<div class="viral-badge lv-2">🌿 양호 ({score:.0f}%)</div>'
     elif score < 1000:
         return f'<div class="viral-badge lv-3">💧 떡상 ({score:.0f}%)</div>'
     elif score < 5000:
@@ -488,7 +497,6 @@ if "raw_data" in st.session_state and st.session_state["raw_data"]:
     elif sort_by == "최신순":
         data = sorted(data, key=lambda x: x["publishedAt"], reverse=is_desc)
 
-    # 4열 기반 Streamlit 기본 레이아웃 사용
     num_cols = 4
     for i in range(0, len(data), num_cols):
         cols = st.columns(num_cols)
@@ -499,7 +507,9 @@ if "raw_data" in st.session_state and st.session_state["raw_data"]:
                     badge = get_viral_badge(item["viralScore"])
                     safe_title = html.escape(item["title"])
                     safe_ch = html.escape(item["channelTitle"])
-                    multiplier = (item["viralScore"] / 100.0 if item["viralScore"] else 0.0)
+                    multiplier = (
+                        item["viralScore"] / 100.0 if item["viralScore"] else 0.0
+                    )
 
                     prompt_text = (
                         f"너는 조회수 천만을 넘기는 최고의 유튜브 크리에이터야. 아래 영상을 벤치마킹해서 한국인 20대 미모의 여자 주인, 양쪽 귀만 커피색 털의 흰색 강아지, 왼쪽 눈은 파란색, 오른쪽 눈은 주황색의 오드아이와 모든 발끝이 흰색 털인 회색 새끼 고양이를 주인공으로 기획안을 써줘. (GPT/Gemini)\n\n"
@@ -515,7 +525,6 @@ if "raw_data" in st.session_state and st.session_state["raw_data"]:
                         f"3. 시청 지속 시간을 위한 대본 구조 설계"
                     )
 
-                    # 카드 HTML 출력
                     card_html = (
                         f'<div class="card">'
                         f'<div class="thumb-box">'
@@ -535,7 +544,6 @@ if "raw_data" in st.session_state and st.session_state["raw_data"]:
                         f'</div>'
                     )
                     st.markdown(card_html, unsafe_allow_html=True)
-                    
-                    # Streamlit 기본 제공 복사 버튼이 포함된 st.code 활용
-                    with st.expander("🤖 AI 기획안 추출 (클릭 후 복사)"):
+
+                    with st.expander("🤖 AI 기획안 추출 (우측 상단 클릭 시 복사)"):
                         st.code(prompt_text, language="markdown")
