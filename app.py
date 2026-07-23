@@ -1,8 +1,6 @@
-import base64
 import datetime
 import html
 import re
-import urllib.parse
 import pandas as pd
 from googleapiclient.discovery import build
 import streamlit as st
@@ -11,7 +9,7 @@ import streamlit as st
 DEFAULT_API_KEY = "AIzaSyCG8MzQ9rkN6WXGAyWJNP2xN27iHZjZPEg"
 
 st.set_page_config(
-    page_title="YouTube Native + Insight",
+    page_title="YouTube Native + Insight V3.0",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -28,7 +26,6 @@ st.markdown(
         --text-sub: #b0b8c4;
         --accent-color: #3ea6ff;
         --border-color: #2f3542;
-        --ai-btn-bg: linear-gradient(135deg, #7c3aed, #a855f7);
     }
 
     .stApp {
@@ -44,7 +41,7 @@ st.markdown(
         color: #ffffff !important;
     }
 
-    /* Streamlit 입력 폼 및 필터 드롭다운 글자색(검은색) 보정 */
+    /* Streamlit 입력 폼 및 필터 드롭다운 글자색 보정 */
     label, .stWidgetLabel, p, span {
         color: #ffffff !important;
     }
@@ -95,13 +92,7 @@ st.markdown(
         box-shadow: 0 0 12px rgba(59, 130, 246, 0.6) !important;
     }
 
-    /* 카드 그리드 레이아웃 */
-    .card-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-        gap: 16px;
-        margin-top: 20px;
-    }
+    /* 개별 카드 디자인 (Grid 제거, Column 대응) */
     .card {
         background: var(--card-bg);
         border-radius: 12px;
@@ -110,6 +101,7 @@ st.markdown(
         display: flex;
         flex-direction: column;
         transition: transform 0.2s, box-shadow 0.2s;
+        margin-bottom: 5px;
     }
     .card:hover {
         transform: translateY(-4px);
@@ -193,24 +185,17 @@ st.markdown(
         background: linear-gradient(135deg, #d50000, #ff1744, #ff5252); 
         box-shadow: 0 0 12px rgba(255, 23, 68, 0.8); 
     }
-
-    /* 카드 내부 AI 기획안 프롬프트 추출 버튼 */
-    .ai-btn {
-        width: 100%;
-        background: var(--ai-btn-bg);
-        color: #ffffff !important;
-        border: none;
-        padding: 10px;
-        border-radius: 6px;
-        font-weight: 700;
-        font-size: 13px;
-        cursor: pointer;
-        margin-top: 8px;
-        transition: all 0.2s ease;
+    
+    /* Expander 디자인 수정 */
+    div[data-testid="stExpander"] {
+        background-color: #1a1d24 !important;
+        border: 1px solid #2f3542 !important;
+        border-radius: 8px !important;
     }
-    .ai-btn:hover {
-        filter: brightness(1.2);
-        box-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
+    div[data-testid="stExpander"] summary p {
+        color: #a855f7 !important;
+        font-weight: 700 !important;
+        font-size: 13px !important;
     }
     </style>
     """,
@@ -503,72 +488,54 @@ if "raw_data" in st.session_state and st.session_state["raw_data"]:
     elif sort_by == "최신순":
         data = sorted(data, key=lambda x: x["publishedAt"], reverse=is_desc)
 
-    cards_html = '<div class="card-container">'
-    for item in data:
-        badge = get_viral_badge(item["viralScore"])
-        safe_title = html.escape(item["title"])
-        safe_ch = html.escape(item["channelTitle"])
-        multiplier = (
-            item["viralScore"] / 100.0 if item["viralScore"] else 0.0
-        )
+    # 4열 기반 Streamlit 기본 레이아웃 사용
+    num_cols = 4
+    for i in range(0, len(data), num_cols):
+        cols = st.columns(num_cols)
+        for j in range(num_cols):
+            if i + j < len(data):
+                item = data[i + j]
+                with cols[j]:
+                    badge = get_viral_badge(item["viralScore"])
+                    safe_title = html.escape(item["title"])
+                    safe_ch = html.escape(item["channelTitle"])
+                    multiplier = (item["viralScore"] / 100.0 if item["viralScore"] else 0.0)
 
-        prompt_text = (
-            f"너는 조회수 천만을 넘기는 최고의 유튜브 크리에이터야. 아래 영상을 벤치마킹해서 한국인 20대 미모의 여자 주인, 양쪽 귀만 커피색 털의 흰색 강아지, 왼쪽 눈은 파란색, 오른쪽 눈은 주황색의 오드아이와 모든 발끝이 흰색 털인 회색 새끼 고양이를 주인공으로 기획안을 써줘. (GPT/Gemini)\n\n"
-            f"[대상]\n"
-            f"제목: {item['title']}\n"
-            f"채널: {item['channelTitle']}\n"
-            f"길이: {item['durationStr']}\n"
-            f"성과: 구독자 대비 {multiplier:.1f}배 조회수\n"
-            f"태그: {item['tags']}\n\n"
-            f"[요청]\n"
-            f"1. 클릭을 부른 심리적 트리거 분석\n"
-            f"2. 내 주제에 맞춘 썸네일/제목 5개 추천\n"
-            f"3. 시청 지속 시간을 위한 대본 구조 설계"
-        )
+                    prompt_text = (
+                        f"너는 조회수 천만을 넘기는 최고의 유튜브 크리에이터야. 아래 영상을 벤치마킹해서 한국인 20대 미모의 여자 주인, 양쪽 귀만 커피색 털의 흰색 강아지, 왼쪽 눈은 파란색, 오른쪽 눈은 주황색의 오드아이와 모든 발끝이 흰색 털인 회색 새끼 고양이를 주인공으로 기획안을 써줘. (GPT/Gemini)\n\n"
+                        f"[대상]\n"
+                        f"제목: {item['title']}\n"
+                        f"채널: {item['channelTitle']}\n"
+                        f"길이: {item['durationStr']}\n"
+                        f"성과: 구독자 대비 {multiplier:.1f}배 조회수\n"
+                        f"태그: {item['tags']}\n\n"
+                        f"[요청]\n"
+                        f"1. 클릭을 부른 심리적 트리거 분석\n"
+                        f"2. 내 주제에 맞춘 썸네일/제목 5개 추천\n"
+                        f"3. 시청 지속 시간을 위한 대본 구조 설계"
+                    )
 
-        # Base64 인코딩을 통해 문자 깨짐 방지
-        b64_prompt = base64.b64encode(prompt_text.encode("utf-8")).decode("utf-8")
-
-        # 클립보드 API 제한을 우회하는 DOM 기반 복사 스크립트
-        click_js = (
-            f"var bin = atob('{b64_prompt}');"
-            f"var bytes = new Uint8Array(bin.length);"
-            f"for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);"
-            f"var txt = new TextDecoder('utf-8').decode(bytes);"
-            f"var ta = document.createElement('textarea');"
-            f"ta.value = txt;"
-            f"ta.style.position = 'fixed';"
-            f"ta.style.top = '0';"
-            f"ta.style.left = '0';"
-            f"ta.style.opacity = '0';"
-            f"document.body.appendChild(ta);"
-            f"ta.focus();"
-            f"ta.select();"
-            f"document.execCommand('copy');"
-            f"document.body.removeChild(ta);"
-            f"alert('🤖 AI 기획안 프롬프트가 복사되었습니다!');"
-        )
-
-        card_item = (
-            f'<div class="card">'
-            f'<div class="thumb-box">'
-            f'<a href="{item["url"]}" target="_blank"><img src="{item["thumbnail"]}" class="thumb-img"></a>'
-            f'<span class="duration-badge">{item["durationStr"]}</span>'
-            f'</div>'
-            f'<div class="card-body">'
-            f'<div class="card-title" title="{safe_title}">{safe_title}</div>'
-            f'<div class="channel-info">📺 {safe_ch} • {item["publishedDate"]}</div>'
-            f'{badge}'
-            f'<div class="stats-grid">'
-            f'<div class="stat-row"><span>조회수</span><span class="stat-val">{format_num(item["viewCount"])}</span></div>'
-            f'<div class="stat-row"><span>구독자</span><span class="stat-val">{format_num(item["subCount"])}</span></div>'
-            f'<div class="stat-row"><span>기여도</span><span class="stat-val" style="color:#3ea6ff">{item["viralScore"]:,.0f}%</span></div>'
-            f'</div>'
-            f'<button class="ai-btn" onclick="{click_js}">🤖 AI 기획안 프롬프트 추출</button>'
-            f'</div>'
-            f'</div>'
-        )
-        cards_html += card_item
-    cards_html += "</div>"
-
-    st.markdown(cards_html, unsafe_allow_html=True)
+                    # 카드 HTML 출력
+                    card_html = (
+                        f'<div class="card">'
+                        f'<div class="thumb-box">'
+                        f'<a href="{item["url"]}" target="_blank"><img src="{item["thumbnail"]}" class="thumb-img"></a>'
+                        f'<span class="duration-badge">{item["durationStr"]}</span>'
+                        f'</div>'
+                        f'<div class="card-body">'
+                        f'<div class="card-title" title="{safe_title}">{safe_title}</div>'
+                        f'<div class="channel-info">📺 {safe_ch} • {item["publishedDate"]}</div>'
+                        f'{badge}'
+                        f'<div class="stats-grid">'
+                        f'<div class="stat-row"><span>조회수</span><span class="stat-val">{format_num(item["viewCount"])}</span></div>'
+                        f'<div class="stat-row"><span>구독자</span><span class="stat-val">{format_num(item["subCount"])}</span></div>'
+                        f'<div class="stat-row"><span>기여도</span><span class="stat-val" style="color:#3ea6ff">{item["viralScore"]:,.0f}%</span></div>'
+                        f'</div>'
+                        f'</div>'
+                        f'</div>'
+                    )
+                    st.markdown(card_html, unsafe_allow_html=True)
+                    
+                    # Streamlit 기본 제공 복사 버튼이 포함된 st.code 활용
+                    with st.expander("🤖 AI 기획안 추출 (클릭 후 복사)"):
+                        st.code(prompt_text, language="markdown")
