@@ -1,3 +1,4 @@
+import base64
 import datetime
 import html
 import re
@@ -15,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# 2. UI 가독성 보정 및 고대비 다크 테마 CSS
+# 2. UI 가독성 보정, 다크 테마 CSS 및 복사 전용 JS
 st.markdown(
     """
     <style>
@@ -212,6 +213,26 @@ st.markdown(
         box-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
     }
     </style>
+
+    <script>
+    function copyB64Prompt(b64Str) {
+        try {
+            const binaryString = atob(b64Str);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            const text = new TextDecoder('utf-8').decode(bytes);
+            navigator.clipboard.writeText(text).then(() => {
+                alert('🤖 AI 기획안 프롬프트가 클립보드에 복사되었습니다!');
+            }).catch(err => {
+                alert('복사 권한 오류가 발생했습니다: ' + err);
+            });
+        } catch (err) {
+            alert('디코딩 중 오류가 발생했습니다: ' + err);
+        }
+    }
+    </script>
 """,
     unsafe_allow_html=True,
 )
@@ -524,9 +545,11 @@ if "raw_data" in st.session_state and st.session_state["raw_data"]:
             f"2. 내 주제에 맞춘 썸네일/제목 5개 추천\n"
             f"3. 시청 지속 시간을 위한 대본 구조 설계"
         )
-        
-        # HTML 속성 내 깨짐 방지를 위한 URL 인코딩
-        encoded_prompt = urllib.parse.quote(prompt_text)
+
+        # Base64 인코딩을 적용하여 특수문자 및 줄바꿈으로 인한 JS 깨짐 완전 방지
+        b64_prompt = base64.b64encode(prompt_text.encode("utf-8")).decode(
+            "utf-8"
+        )
 
         card_item = (
             f'<div class="card">'
@@ -543,7 +566,7 @@ if "raw_data" in st.session_state and st.session_state["raw_data"]:
             f'<div class="stat-row"><span>구독자</span><span class="stat-val">{format_num(item["subCount"])}</span></div>'
             f'<div class="stat-row"><span>기여도</span><span class="stat-val" style="color:#3ea6ff">{item["viralScore"]:,.0f}%</span></div>'
             f'</div>'
-            f'<button class="ai-btn" onclick="navigator.clipboard.writeText(decodeURIComponent(\'{encoded_prompt}\')); alert(\'🤖 AI 기획안 프롬프트가 클립보드에 복사되었습니다!\');">🤖 AI 기획안 프롬프트 추출</button>'
+            f'<button class="ai-btn" onclick="copyB64Prompt(\'{b64_prompt}\')">🤖 AI 기획안 프롬프트 추출</button>'
             f'</div>'
             f'</div>'
         )
